@@ -1,6 +1,6 @@
 # Gemini integration and remaining plan
 
-Status: the private generation CLI, shared response validator, verified artifact loader, and source-backed Three.js data layers are implemented. A successful live Gemini call still requires a configured credential. No public model service is deployed. API references were checked on **25 October 2026**.
+Status: the private generation CLI, shared response validator, verified artifact loader, and source-backed Three.js data layers are implemented. A successful Gemini 2.5 Flash GenerateContent request produced the validated six-dataset artifact on 25 October 2026 (client timezone). No public model service is deployed. API references were checked on **25 October 2026**.
 
 Cyberalpine will use Gemini for two jobs: interpreting datasets into an information ecosystem, and generating cinematic segments conditioned on the explorer's gaze. The structured world and its numeric dynamics remain authoritative throughout.
 
@@ -8,8 +8,8 @@ Cyberalpine will use Gemini for two jobs: interpreting datasets into an informat
 
 | Component | Present in this repository | Planned addition |
 | --- | --- | --- |
-| Environment | Deterministic terrain and record geometry; Argon plan CLI and strict validation | Execute and verify generation with a valid credential; broader semantic composition |
-| Browser | Three.js record layers, timeline, source charts, plan loading and exact-record highlights | Frame capture, generation controls, and generated-clip presentation |
+| Environment | User-selected physical peaks and record forests; Gemini plan CLI and strict validation | Validated Gemini 2.5 Flash interpretation is included; broader semantic composition remains planned |
+| Browser | Dataset composer with native/peak/forest overrides; Three.js records, source charts, plan loading and highlights | Frame capture, generation controls, and generated-clip presentation |
 | Gaze | `window.Cyberalpine.setGaze(...)` and the same-page `cyberalpine:gaze` event | A bridge from the user's hyperemergence engine and timestamped gaze history |
 | Video header | A supplied Runway MP4 with playback controls | It remains separate from any future gaze-conditioned generation |
 | Unreal | C++ source starter and direct camera-pose boundary | Compiled validation, camera capture, and connection to the model worker |
@@ -23,6 +23,7 @@ Robot kinematics and gaze emergence belong to the user's future architecture. Ge
 
 | Role | Planned model or API | Intended use |
 | --- | --- | --- |
+| Hackathon interpretation | `gemini-2.5-flash` via GenerateContent | Executed successfully; six validated dataset interpretations and exact-record highlights |
 | Environment reasoning | `gemini-4-argon` | Interpret source descriptors, propose ecological organization, and explain the mapping through structured JSON |
 | Video generation | `gemini-omni-1.1-flash` | Generate or refine short cinematic segments from rendered references and a gaze/world description |
 | Request transport | Gemini Interactions API | Server-side model requests and typed output handling |
@@ -36,11 +37,15 @@ The planned REST endpoint is `POST https://generativelanguage.googleapis.com/v1b
 
 ## Implemented build-time generation
 
-[`scripts/generate-gemini-universe.mjs`](../scripts/generate-gemini-universe.mjs) reads the acquired universe, creates a bounded six-dataset request, and calls Argon with a privately supplied API credential. `--prepare-only` creates context/request fixtures without a model call. `--secret-project ID` reads `GEMINI_API_KEY` through the authenticated Firebase CLI; no key is written to a source file.
+[`scripts/generate-gemini-universe.mjs`](../scripts/generate-gemini-universe.mjs) reads the acquired universe, creates a bounded six-dataset request, and calls the configured Gemini model with a privately supplied API credential (Argon through Interactions by default). `--prepare-only` creates context/request fixtures without a model call. `--secret-project ID` reads `GEMINI_API_KEY` through the authenticated Firebase CLI; no key is written to a source file.
 
 [`public/assets/gemini-plan.js`](../public/assets/gemini-plan.js) is shared by the CLI and browser. It rejects unknown or duplicate dataset IDs, incompatible visual roles, invented or cross-dataset selected IDs, extra fields, non-finite statistics, and mismatched artifact bindings. The only selectable record IDs are those included in the bounded context. Failed requests leave the previous artifact intact.
 
-The artifact records the model, prompt version, generation time, source snapshot hash, exact universe-file hash, context hash, and response identifier. The browser independently verifies these hashes, displays generated text as interpretation, and highlights the referenced records. The current checked-in artifact is **not generated**; no successful provider call is claimed.
+The artifact records the model, prompt version, generation time, source snapshot hash, exact universe-file hash, context hash, and response identifier. The browser independently verifies these hashes, displays generated text as interpretation, and highlights the referenced records. The user’s selected datasets determine which physical peaks, forest homes, record overlays, and declared transfers are built. Changing a form resamples the same physical terrain field used for trees and paths; it does not modify source observations. The checked-in artifact is **generated** with `gemini-2.5-flash` via `generate-content`, using prompt contract v2. All six dataset identities, compatible visual roles, record references, and input hashes passed validation. This is generated interpretation and record emphasis; the source observations and physical mapping remain deterministic.
+
+The local hackathon credential can be supplied from the ignored `.env.local` via `node --env-file=.env.local`; it is outside the public Firebase directory and committed source. `--api generate-content` uses the model-specific legacy endpoint with `generationConfig.responseMimeType` and `responseJsonSchema`, for compatible models. The default remains Interactions. Both transports use the same strict plan validator and bind artifacts to the exact source inputs. The legacy parser requires a completed `STOP` response and excludes thought text. [GenerateContent API reference](https://ai.google.dev/api/generate-content).
+
+During the verified hackathon run, the key authenticated. Argon returned HTTP 429 with a free-tier daily limit of zero; Gemini 3.8 Flash returned high demand and 3.5 Flash returned a project quota error. Two legacy-model Interactions responses did not match the application contract and were rejected. The model-specific GenerateContent request succeeded and validated. The public page presents only the accepted artifact.
 
 This build-time route makes generation available without exposing a billed public endpoint. The service architecture below remains the proposal for future interactive generation.
 

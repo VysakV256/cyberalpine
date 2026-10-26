@@ -2,7 +2,7 @@
 
 **Live:** [cyberalpine.web.app](https://cyberalpine.web.app)
 
-**Gemini integration:** [Implementation and API plan](docs/gemini-integration.md). A private generation CLI and validated artifact loader are implemented. Live Gemini generation requires a configured credential; the public browser makes no direct model calls. Omni video generation remains planned.
+**Gemini integration:** [Implementation and API plan](docs/gemini-integration.md). A private generation CLI and validated artifact loader are implemented. A validated six-dataset interpretation was generated with Gemini 2.5 Flash through GenerateContent; the public browser loads that artifact without making model calls. Omni video generation remains planned.
 
 A buildless Three.js ecosystem for Cyberquest. Serve `public/` with an HTTP server; opening `index.html` as a local file will not load the JSON manifest or JavaScript modules.
 
@@ -30,13 +30,19 @@ Private collections, personal entitlements, cloud data storage, real buoyancy, a
 
 ## Dataset visualizations
 
+The **Landscape composer** lets each visitor select any of the six retained datasets, choose its native form or override it with a mountain peak or pine forest, then press **Generate landscape**. Only the selected dataset homes and their retained record overlays are built. Selecting an omitted dataset in the Data lens grows its home and focuses the camera.
+
+Selected peaks have six physical ridges and gullies, with matching analytic height gradients. Each forest tree identifies a retained source or derived record; collections above 150 records use an evenly distributed deterministic sample. The full native selection creates two peaks and four forests with 289 record trees. Tree height, canopy size, ridges, and layout are display mappings. The source snapshot is immutable, and only declared transfers whose endpoints remain selected are displayed.
+
+Generation animates the new landscape, respects reduced motion, reframes the selected homes, preserves an external gaze, and keeps the data lake accessible through its region control. Visitor selections apply to the current browser session.
+
 The **Data lens** connects six dataset selectors, a monthly cutoff, source charts, and Three.js record landmarks:
 
 - 22 ice columns show actual CPI and unemployment observations, each normalized within its own series. Their numeric baselines are truncated and exact source values remain inspectable.
 - 139 constellation points show 22 derived observation objects, 78 research metadata records, and 39 book metadata records. The derived objects are not additional acquired works.
 - 347 DOI identifiers and 329 deposited reference edges form a citation network. External targets remain identifiers; their metadata and publication dates are not invented.
 
-Timeline filtering applies to record overlays and charts. The underlying geographic terrain represents the complete retained snapshot. Select a dataset to focus its region, select a record to inspect provenance, or switch to Landscape to hide the data overlay.
+Timeline filtering applies to record overlays and charts. Each selected geographic home represents its complete retained date window; the composer controls which homes exist. Select a dataset to focus its region, select a record to inspect provenance, or switch to Landscape to hide the data overlay.
 
 ## Generate a Gemini interpretation
 
@@ -46,13 +52,19 @@ Node.js 22 or later is required for the CLI; the static app still needs no packa
 node scripts/generate-gemini-universe.mjs --prepare-only
 ```
 
-For a real request, configure `GEMINI_API_KEY` privately in the process environment, or use a Secret Manager secret through an authenticated Firebase CLI:
+For a real request, configure `GEMINI_API_KEY` privately in the process environment. For the hackathon, an ignored local `.env.local` can contain `GEMINI_API_KEY=...`; run it with Node’s environment loader:
+
+```sh
+node --env-file=.env.local scripts/generate-gemini-universe.mjs --api generate-content --model gemini-2.5-flash
+```
+
+The key file stays outside Firebase’s `public/` directory and Git. Alternatively use a Secret Manager secret through an authenticated Firebase CLI:
 
 ```sh
 node scripts/generate-gemini-universe.mjs --secret-project infiniteutopia
 ```
 
-The CLI calls Argon, validates exact dataset/record IDs and compatible visual roles, and atomically writes `public/assets/gemini-universe.json` only after a successful response. The browser verifies source, manifest, and context hashes before displaying generated annotations and highlighting selected records. A pending artifact is deliberately labelled as pending. Gemini never replaces observed values, units, or deposited citations. Model calls can incur provider charges.
+The CLI calls the configured Gemini model (Argon through Interactions by default), validates exact dataset/record IDs and compatible visual roles, and atomically writes `public/assets/gemini-universe.json` only after a successful response. The browser verifies source, manifest, and context hashes before displaying generated annotations and highlighting selected records. The checked-in artifact records the successful Gemini 2.5 Flash request and its input hashes. Argon returned a zero free-tier daily quota during this hackathon run; newer Flash models returned capacity or project-quota errors. A pending or rejected artifact is deliberately labelled as pending. Gemini never replaces observed values, units, or deposited citations. Model calls can incur provider charges.
 
 Run the offline contract tests with:
 
@@ -82,7 +94,7 @@ The site has no backend secrets. Files in `public/` are public on deployment.
 
 The header uses the supplied 60-second Runway export with its original H.264 video and AAC audio, remuxed for progressive playback without re-encoding. It starts muted, offers Play/Pause and Mute/Unmute, respects reduced motion, and pauses offscreen. The interactive atlas follows below.
 
-The browser scene uses procedural granite and ice textures, seeded branching pine foliage, cool atmospheric lighting, and a planar-reflection water shader. These are visual improvements; the shared analytic terrain, data snapshot, and lake navigation field remain authoritative. Neither the video nor decorative material detail changes source records or force calculations.
+The browser scene uses procedural granite and ice textures, seeded branching pine foliage, cool atmospheric lighting, and a planar-reflection water shader. Material detail leaves the source snapshot untouched. Selected dataset forms now produce physical ridged terrain through the same analytic field used to place trees and sample paths; the acquired canonical terrain remains reproducible. Neither the video nor decorative material detail changes source records or force calculations.
 
 ## Rights and attribution
 

@@ -12,13 +12,14 @@ function cutoffDate(value) {
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date+'T00:00:00Z')) || new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date)throw Error('Timeline cutoff must be a valid ISO date.');
   return date;
 }
-export function createDataLandmarks(THREE,{manifest,ground,onInspect}={}) {
+export function createDataLandmarks(THREE,{manifest,sourceManifest=manifest,ground,onInspect}={}) {
   if(!manifest || !Array.isArray(manifest.datasets) || typeof ground!=='function')throw Error('A source manifest and ground(x,z) function are required.');
   const group=new THREE.Group();group.name='Traceable record landmarks';
   const pickables=[],resources=new Set(),batches=[],labels=[],recordsByKey=new Map(),positions=new Map(),datasetById=new Map(),knownDois=new Map();
   let cutoff=cutoffDate(manifest.window?.end || '9999-12-31'),visible=true,disposed=false,planSelection=[],graph=null,activeGraphRecords=[];
   const datasets=manifest.datasets.filter(d=>d&&typeof d.id==='string'&&d.anchor&&[d.anchor.x,d.anchor.z,d.radius].every(Number.isFinite)).slice(0,64);
-  for(const d of datasets){datasetById.set(d.id,d);for(const r of d.records||[]){if(typeof r.id==='string')recordsByKey.set(key(d.id,r.id),r);if(typeof r.doi==='string')knownDois.set(r.doi,{datasetId:d.id,record:r});}}
+  for(const d of sourceManifest.datasets||[])for(const r of d.records||[])if(typeof r.doi==='string')knownDois.set(r.doi,{datasetId:d.id,record:r});
+  for(const d of datasets){datasetById.set(d.id,d);for(const r of d.records||[])if(typeof r.id==='string')recordsByKey.set(key(d.id,r.id),r);}
   const keep=value=>(resources.add(value),value);
   const material=(color,extra={})=>keep(new THREE.MeshStandardMaterial({color,roughness:.35,metalness:.15,emissive:color,emissiveIntensity:.24,...extra}));
   const columnMaterial=material('#b8efff',{transparent:true,opacity:.88});

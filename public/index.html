@@ -5,7 +5,7 @@
   <meta name="description" content="Cyberalpine is an information universe: datasets become mountain ranges, knowledge forests, archive glaciers and navigable data lakes.">
   <meta name="theme-color" content="#071e19"><title>Cyberalpine — Data has geography.</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23071e19' d='M0 0h48v48H0z'/%3E%3Cpath d='m6 37 13-26 11 21 6-12 8 17M15 20l4 6 4-6' fill='none' stroke='%23d6f3f5' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=a14afedbc24c">
+  <link rel="stylesheet" href="styles.css?v=5b40febe278c">
 </head>
 <body>
 <header class="site-header"><a class="wordmark" href="#" aria-label="Cyberalpine home"><svg viewBox="0 0 40 32" aria-hidden="true"><path d="m1 29 13-25 10 19 5-11 10 17M10 12l4 5 4-5M24 23l5 6"/></svg>CYBERALPINE</a><nav aria-label="Main navigation"><a href="#atlas">Explore the atlas</a><a href="#philosophy">The philosophy</a><a href="#sources">The evidence</a></nav><a class="header-cta" href="#atlas">Enter the landscape <span>↗</span></a></header>
@@ -19,9 +19,11 @@
 </section>
 <section class="interactive-explorer" aria-labelledby="explorerTitle">
   <div class="explorer-section-heading"><div><span class="eyebrow">THE INTERACTIVE ATLAS</span><h2 id="explorerTitle">Find your way <em>through the data.</em></h2></div><a href="#sources">Every landmark has a source <span>↘</span></a></div>
+  <section class="landscape-builder" id="landscapeBuilder" aria-label="Compose a dataset landscape"><p class="builder-empty">Preparing the dataset landscape composer…</p></section>
   <div class="hero-landscape" id="atlas">
     <div class="atlas-heading"><span><i class="live-dot"></i> THE INFORMATION ALPS</span><span id="snapshotTag">ILLUSTRATIVE TERRAIN</span></div>
     <button class="expand-explorer" id="expandExplorer" aria-label="Expand interactive explorer to fullscreen">⛶ Expand explorer</button>
+    <button class="expand-explorer compose-explorer" id="composeLandscape">+ Choose datasets</button>
     <div class="fullscreen-boat-controls"><button id="fullscreenBoat">Launch a boat ↗</button><div role="group" aria-label="Fullscreen boat steering"><button data-steer="left" aria-label="Turn boat left">←</button><button data-steer="forward" aria-label="Move boat forward">↑</button><button data-steer="back" aria-label="Move boat backward">↓</button><button data-steer="right" aria-label="Turn boat right">→</button></div></div>
     <canvas id="landscape" aria-label="Interactive three dimensional information landscape showing dataset mountains, forests, glaciers, rivers and a navigable data lake" tabindex="0"></canvas>
     <div class="scene-coordinate" aria-hidden="true">N ↑<br><span>DRAG TO ORBIT / SCROLL TO ZOOM</span></div>
@@ -50,5 +52,5 @@
 </main>
 <footer><a class="wordmark" href="#">CYBERALPINE</a><span>A CYBERQUEST CONCEPT / 2026</span><a href="#philosophy">The map is an interpretation. The source is the evidence. ↑</a></footer>
 <script src="assets/hero-video.js" type="module"></script>
-<script src="app.js?v=8d56692aa454" type="module"></script>
+<script src="app.js?v=ca97a24e121c" type="module"></script>
 </body></html>

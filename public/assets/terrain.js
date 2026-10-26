@@ -52,9 +52,30 @@
       const q = (dx * dx + dz * dz) / (radius * radius);
       if (q >= 1) continue;
       // Compact C2 radial kernel. Disjoint supports preserve true dataset extrema.
-      const a = 1 - q, weight = a * a * a, amplitude = num(d.relief, 0, -100, 100);
-      const heightContribution = amplitude * weight, derivative = -6 * amplitude * a * a / (radius * radius);
-      height += heightContribution; gx += derivative * dx; gz += derivative * dz;
+      const a = 1 - q, amplitude = num(d.relief, 0, -100, 100);
+      let weight = a * a * a, derivative = -6 * amplitude * a * a / (radius * radius), ridgeGX = 0, ridgeGZ = 0;
+      const ruggedness = d.shape === 'alpine-ridge' ? num(d.ruggedness, .75, 0, 1) : 0;
+      if (ruggedness > 0) {
+        // Six compact ridgelines alternate with gullies. The positive profile
+        // stays below its central maximum and vanishes at the original radius.
+        // q*sin²(3θ) has a finite first derivative at the center; the angular
+        // contribution is explicitly zero at r=0 instead of dividing by zero.
+        const theta = Math.atan2(dz, dx), sine = Math.sin(3 * theta), angular = sine * sine;
+        const sharpness = 2.2 * ruggedness, strength = .85 * ruggedness, denominator = 1 + sharpness * q;
+        const profile = weight / denominator, profileQ = (-3 * a * a * denominator - weight * sharpness) / (denominator * denominator);
+        const cut = 1 - 4 * strength * q * a * angular, cutQ = -4 * strength * (1 - 2 * q) * angular;
+        const weightQ = profileQ * cut + profile * cutQ;
+        const weightTheta = profile * (-12 * strength * q * a * Math.sin(6 * theta));
+        const distanceSquared = dx * dx + dz * dz;
+        weight = profile * cut;
+        derivative = amplitude * weightQ * 2 / (radius * radius);
+        if (distanceSquared > 0) {
+          ridgeGX = -amplitude * weightTheta * dz / distanceSquared;
+          ridgeGZ = amplitude * weightTheta * dx / distanceSquared;
+        }
+      }
+      const heightContribution = amplitude * weight;
+      height += heightContribution; gx += derivative * dx + ridgeGX; gz += derivative * dz + ridgeGZ;
       density += num(d.abundance, .5, 0, 1) * weight * .9;
       uncertainty += num(d.uncertainty, .35, 0, 1) * weight; weights += weight;
       contributions.push({ datasetId: d.id, weight, heightContribution });

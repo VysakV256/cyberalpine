@@ -42,3 +42,12 @@ test('constant-valued series has finite heights and explicit truncated baseline'
  const data=layer.resolveHit({object:mesh,instanceId:0});assert.equal(data.numericBaseline,7);assert.equal(data.numericMaximum,7);assert.ok(Number.isFinite(data.displayHeight));assert.ok([...mesh.instanceMatrix.array].every(Number.isFinite));
  assert.throws(()=>layer.setTime('2026-02-30'),/valid ISO date/);layer.dispose();
 });
+
+test('selected-only layers retain fetched DOI metadata from the source catalogue',()=>{
+ const edges=manifest.datasets.find(d=>d.id==='crossref-reference-edges');
+ const layer=createDataLandmarks(THREE,{manifest:{...manifest,datasets:[edges]},sourceManifest:manifest,ground:()=>8});
+ const stats=layer.getStats();assert.equal(stats.datasets,1);assert.equal(stats.observations,0);assert.equal(stats.retainedRecordPoints,0);assert.equal(stats.graphEdges,329);
+ const nodes=layer.pickables.find(o=>o.name==='Actual deposited DOI reference graph');
+ const known=nodes.userData.instances.find(d=>d.metadataFetched);assert.ok(known);assert.ok(known.record.title);assert.equal(known.snapshotMetadataFetched,true);
+ layer.dispose();
+});

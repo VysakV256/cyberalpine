@@ -7,7 +7,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {compileContext,validatePlan,parseResponse,buildRequest,validateBindings,DATASET_IDS,PROMPT_VERSION} from '../public/assets/gemini-plan.js';
+import {compileContext,validatePlan,parseResponse,buildRequest,buildGenerateContentRequest,validateBindings,DATASET_IDS,PROMPT_VERSION} from '../public/assets/gemini-plan.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const raw=fs.readFileSync(path.join(root,'public/assets/universe.json')),manifest=JSON.parse(raw);
 const context=compileContext(manifest),sha=v=>createHash('sha256').update(v).digest('hex');
@@ -32,6 +32,13 @@ test('bounded context uses all six real dataset IDs, records, and only three der
     assert.ok(d.records.every(r=>actual.records.some(actual=>actual.id===r.recordId)));
   }
   assert.ok(Buffer.byteLength(JSON.stringify(context))<40000);
+});
+test('each bounded dataset declares the exact required visual emphasis for generation',()=>{
+  const expected=['series','series','object-grove','publication-canopy','object-grove','citation-network'];
+  assert.deepEqual(context.datasets.map(d=>d.requiredVisualEmphasis),expected);
+  const request=buildRequest(context,'gemini-2.5-flash');
+  assert.match(request.input,/copy its supplied requiredVisualEmphasis verbatim/);
+  assert.equal(context.promptVersion,'cyberalpine.gemini-plan.v2');
 });
 test('context rejects non-finite source statistics',()=>{
   const bad=clone(manifest);bad.datasets[0].features.relativeStdDev=Infinity;
@@ -71,11 +78,27 @@ test('REST model_output text and SDK output_text parse identically',()=>{
   assert.throws(()=>parseResponse({status:'in_progress',output_text:text}),/did not complete/);
   assert.throws(()=>parseResponse({output_text:'{"x":NaN}'}),/invalid JSON/);
 });
+test('generateContent parses only non-thought text and requires the first candidate to finish with STOP',()=>{
+  const plan=fixturePlan(),text=JSON.stringify(plan),parts=[{thought:true,text:'Private reasoning is not a plan.'},{text:text.slice(0,80)},{text:text.slice(80)}];
+  assert.deepEqual(parseResponse({candidates:[{finishReason:'STOP',content:{parts}}]}),plan);
+  for(const finishReason of [undefined,'MAX_TOKENS','SAFETY','CONTINUATION']){
+    assert.throws(()=>parseResponse({candidates:[{finishReason,content:{parts}}],output_text:text}),/did not finish with STOP/);
+  }
+  assert.throws(()=>parseResponse({candidates:[]}),/did not finish with STOP/);
+  assert.throws(()=>parseResponse({candidates:[{finishReason:'STOP',content:{parts:[{thought:true,text}]}}]}),/no bounded JSON plan/);
+});
 test('structured request forbids storage and limits response to the plan schema',()=>{
   const request=buildRequest(context);assert.equal(request.model,'gemini-4-argon');assert.equal(request.store,false);
   assert.equal(request.response_format.mime_type,'application/json');
   assert.equal(request.response_format.schema.additionalProperties,false);
   assert.throws(()=>buildRequest(context,'invalid/model'),/model ID/);
+});
+test('generateContent request maps the same context and schema without Interactions-only fields',()=>{
+  const modern=buildRequest(context,'gemini-2.5-flash'),legacy=buildGenerateContentRequest(context,'gemini-2.5-flash');
+  assert.deepEqual(legacy.contents,[{role:'user',parts:[{text:modern.input}]}]);
+  assert.deepEqual(legacy.generationConfig,{responseMimeType:'application/json',responseJsonSchema:modern.response_format.schema,maxOutputTokens:8192,temperature:0.4});
+  assert.equal(Object.hasOwn(legacy,'store'),false);assert.equal(Object.hasOwn(legacy,'model'),false);assert.equal(Object.hasOwn(legacy,'response_format'),false);
+  assert.throws(()=>buildGenerateContentRequest(context,'invalid/model'),/model ID/);
 });
 test('all three artifact hashes bind to exact inputs',()=>{
   const bindings={sourceSnapshotSha256:manifest.sourceSnapshotSha256,universeManifestSha256:sha(raw),inputContextSha256:sha(JSON.stringify(context))};
@@ -96,12 +119,55 @@ test('missing credentials fail clearly and preserve the previous artifact',t=>{
   const run=child([cli,'--output',output]);assert.equal(run.status,1);assert.match(run.stderr,/Missing API key/);
   assert.equal(fs.readFileSync(output,'utf8'),'existing-artifact');
 });
+test('CLI selects the documented endpoint and body for both APIs before saving validated artifacts',t=>{
+  const dir=temporary(t),plan=fixturePlan();
+  for(const api of ['interactions','generate-content']){
+    const output=path.join(dir,`${api}.artifact.json`),requestFile=path.join(dir,`${api}.request.json`);
+    const response=api==='interactions'?{status:'completed',id:'offline-interaction-id',output_text:JSON.stringify(plan)}:
+      {responseId:'offline-generate-content-id',candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(plan)}]}}]};
+    const source=`import fs from 'node:fs';globalThis.fetch=async(url,options)=>{fs.writeFileSync(${JSON.stringify(requestFile)},JSON.stringify({url,method:options.method,body:JSON.parse(options.body)}));return new Response(${JSON.stringify(JSON.stringify(response))},{status:200});};`;
+    const preload='data:text/javascript,'+encodeURIComponent(source);
+    const run=child(['--import',preload,cli,'--api',api,'--model','gemini-2.5-flash','--output',output],{GEMINI_API_KEY:'offline-fixture-key'});
+    assert.equal(run.status,0,run.stderr);
+    const request=JSON.parse(fs.readFileSync(requestFile)),artifact=JSON.parse(fs.readFileSync(output));
+    assert.equal(request.method,'POST');
+    assert.equal(request.url,api==='interactions'?'https://generativelanguage.googleapis.com/v1beta/interactions':'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
+    assert.deepEqual(request.body,api==='interactions'?buildRequest(context,'gemini-2.5-flash'):buildGenerateContentRequest(context,'gemini-2.5-flash'));
+    assert.equal(artifact.api,api);assert.equal(artifact.status,'generated');assert.deepEqual(artifact.plan,validatePlan(plan,manifest));
+    assert.equal(artifact.responseId,api==='interactions'?'offline-interaction-id':'offline-generate-content-id');
+    assert.ok(!fs.readFileSync(output,'utf8').includes('offline-fixture-key'));
+  }
+});
 test('mocked HTTP failure never overwrites a valid existing artifact',t=>{
   const dir=temporary(t),output=path.join(dir,'artifact.json');fs.writeFileSync(output,'existing-artifact');
   const preload='data:text/javascript,'+encodeURIComponent('globalThis.fetch=async()=>({ok:false,status:429});');
   const run=child(['--import',preload,cli,'--output',output],{GEMINI_API_KEY:'offline-fixture-key'});
   assert.equal(run.status,1);assert.match(run.stderr,/HTTP 429/);
   assert.equal(fs.readFileSync(output,'utf8'),'existing-artifact');
+});
+test('structured HTTP errors expose bounded useful details with credentials and controls removed',t=>{
+  const dir=temporary(t),output=path.join(dir,'artifact.json'),key='offline-fixture+secret/key=';fs.writeFileSync(output,'existing-artifact');
+  const body={error:{status:'RESOURCE_EXHAUSTED\n',message:`Quota for ${key}; encoded ${encodeURIComponent(key)}; \u001b[31mretry\n`+'x'.repeat(1000)}};
+  const preload='data:text/javascript,'+encodeURIComponent(`globalThis.fetch=async()=>new Response(${JSON.stringify(JSON.stringify(body))},{status:429});`);
+  const run=child(['--import',preload,cli,'--output',output],{GEMINI_API_KEY:key});
+  assert.equal(run.status,1);assert.match(run.stderr,/HTTP 429.*RESOURCE_EXHAUSTED.*Quota for \[redacted\]/);
+  assert.ok(!run.stderr.includes(key));assert.ok(!run.stderr.includes('\u001b'));assert.ok(run.stderr.length<800);
+  assert.equal(fs.readFileSync(output,'utf8'),'existing-artifact');
+});
+test('HTTP success with an invalid generated plan preserves the previous artifact',t=>{
+  const dir=temporary(t),output=path.join(dir,'artifact.json');fs.writeFileSync(output,'existing-artifact');
+  const plan=fixturePlan();plan.datasets[0].visualEmphasis='invented-emphasis';
+  const body={status:'completed',output_text:JSON.stringify(plan)};
+  const preload='data:text/javascript,'+encodeURIComponent(`globalThis.fetch=async()=>new Response(${JSON.stringify(JSON.stringify(body))},{status:200});`);
+  const run=child(['--import',preload,cli,'--output',output],{GEMINI_API_KEY:'offline-fixture-key'});
+  assert.equal(run.status,1);assert.match(run.stderr,/Invalid visual emphasis/);
+  assert.equal(fs.readFileSync(output,'utf8'),'existing-artifact');
+});
+test('unreadable HTTP errors never print the raw provider body',t=>{
+  const dir=temporary(t),key='offline-fixture-secret-key';
+  const preload='data:text/javascript,'+encodeURIComponent(`globalThis.fetch=async()=>new Response(${JSON.stringify('raw non-json '+key)},{status:503});`);
+  const run=child(['--import',preload,cli,'--output',path.join(dir,'artifact.json')],{GEMINI_API_KEY:key});
+  assert.equal(run.status,1);assert.match(run.stderr,/HTTP 503/);assert.ok(!run.stderr.includes(key));assert.ok(!run.stderr.includes('raw non-json'));
 });
 test('--help requires no manifest or credentials',()=>{
   const run=child([cli,'--help','--manifest','/nonexistent-fixture-manifest.json']);
