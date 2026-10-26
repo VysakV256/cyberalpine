@@ -2,7 +2,7 @@
 
 **Live:** [cyberalpine.web.app](https://cyberalpine.web.app)
 
-**Planned model integrations:** [Gemini API architecture and implementation plan](docs/gemini-integration.md), covering Argon environment reasoning, Omni video generation, gaze handoff, authentication, example requests, and delivery milestones. These integrations are planned; the current web app makes no Gemini calls.
+**Gemini integration:** [Implementation and API plan](docs/gemini-integration.md). A private generation CLI and validated artifact loader are implemented. Live Gemini generation requires a configured credential; the public browser makes no direct model calls. Omni video generation remains planned.
 
 A buildless Three.js ecosystem for Cyberquest. Serve `public/` with an HTTP server; opening `index.html` as a local file will not load the JSON manifest or JavaScript modules.
 
@@ -27,6 +27,38 @@ Use the region buttons to visit peaks, forest, glaciers, and lake. Launch a boat
 The external gaze interface is `window.Cyberalpine.setGaze({position:{x,y,z},yaw,pitch,fov,source})`. Coordinates use metres: +X east, +Y up, +Z north; yaw is clockwise from north in radians, pitch positive up, FOV horizontal degrees. Your future hyperemergence engine supplies gaze. This page does not implement robot kinematics or autonomous gaze selection.
 
 Private collections, personal entitlements, cloud data storage, real buoyancy, and generative video are future integrations. The browser renders structured geometry; it does not call Gemini or generate video. The [planned Gemini integration](docs/gemini-integration.md) describes the provider boundary.
+
+## Dataset visualizations
+
+The **Data lens** connects six dataset selectors, a monthly cutoff, source charts, and Three.js record landmarks:
+
+- 22 ice columns show actual CPI and unemployment observations, each normalized within its own series. Their numeric baselines are truncated and exact source values remain inspectable.
+- 139 constellation points show 22 derived observation objects, 78 research metadata records, and 39 book metadata records. The derived objects are not additional acquired works.
+- 347 DOI identifiers and 329 deposited reference edges form a citation network. External targets remain identifiers; their metadata and publication dates are not invented.
+
+Timeline filtering applies to record overlays and charts. The underlying geographic terrain represents the complete retained snapshot. Select a dataset to focus its region, select a record to inspect provenance, or switch to Landscape to hide the data overlay.
+
+## Generate a Gemini interpretation
+
+Node.js 22 or later is required for the CLI; the static app still needs no package installation. Prepare the bounded context without making a provider request:
+
+```sh
+node scripts/generate-gemini-universe.mjs --prepare-only
+```
+
+For a real request, configure `GEMINI_API_KEY` privately in the process environment, or use a Secret Manager secret through an authenticated Firebase CLI:
+
+```sh
+node scripts/generate-gemini-universe.mjs --secret-project infiniteutopia
+```
+
+The CLI calls Argon, validates exact dataset/record IDs and compatible visual roles, and atomically writes `public/assets/gemini-universe.json` only after a successful response. The browser verifies source, manifest, and context hashes before displaying generated annotations and highlighting selected records. A pending artifact is deliberately labelled as pending. Gemini never replaces observed values, units, or deposited citations. Model calls can incur provider charges.
+
+Run the offline contract tests with:
+
+```sh
+node --test scripts/*.test.mjs
+```
 
 ## Rebuild data
 

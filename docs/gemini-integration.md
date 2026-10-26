@@ -1,6 +1,6 @@
-# Planned Gemini integration
+# Gemini integration and remaining plan
 
-Status: design proposal; no Gemini service is deployed by this repository. Model and API references checked against Google's documentation on **25 October 2026**.
+Status: the private generation CLI, shared response validator, verified artifact loader, and source-backed Three.js data layers are implemented. A successful live Gemini call still requires a configured credential. No public model service is deployed. API references were checked on **25 October 2026**.
 
 Cyberalpine will use Gemini for two jobs: interpreting datasets into an information ecosystem, and generating cinematic segments conditioned on the explorer's gaze. The structured world and its numeric dynamics remain authoritative throughout.
 
@@ -8,12 +8,12 @@ Cyberalpine will use Gemini for two jobs: interpreting datasets into an informat
 
 | Component | Present in this repository | Planned addition |
 | --- | --- | --- |
-| Environment | Deterministic dataset terrain, source provenance, forests, glaciers, information rivers, and a carved lake | Gemini-assisted semantic composition and validated world proposals |
-| Browser | Three.js geometry, materials, reflections, boat inspection, and record lookup | Frame capture, generation controls, and generated-clip presentation |
+| Environment | Deterministic terrain and record geometry; Argon plan CLI and strict validation | Execute and verify generation with a valid credential; broader semantic composition |
+| Browser | Three.js record layers, timeline, source charts, plan loading and exact-record highlights | Frame capture, generation controls, and generated-clip presentation |
 | Gaze | `window.Cyberalpine.setGaze(...)` and the same-page `cyberalpine:gaze` event | A bridge from the user's hyperemergence engine and timestamped gaze history |
 | Video header | A supplied Runway MP4 with playback controls | It remains separate from any future gaze-conditioned generation |
 | Unreal | C++ source starter and direct camera-pose boundary | Compiled validation, camera capture, and connection to the model worker |
-| Backend | None; Firebase currently hosts static files | Authenticated generation API, queue, worker, artifact storage, and usage controls |
+| Backend | Local Node generation CLI; Firebase serves static files | Authenticated generation service, queue, worker, artifact storage, and usage controls |
 
 Code entry points: [browser renderer and gaze API](../public/app.js), [world compiler](../unreal/Scripts/build_universe.cjs), and [Unreal gaze pawn](../unreal/Source/CyberquestUnreal/Private/CyberquestGazePawn.cpp).
 
@@ -33,6 +33,16 @@ Argon is a model within the Gemini API. Google documents text output, structured
 Google's current video guide directs Gemini API users to Omni Flash. Veo 3.1 Preview was shut down on 22 October 2026, so its preview identifiers are excluded from this plan. [Video generation guide](https://ai.google.dev/gemini-api/docs/video).
 
 The planned REST endpoint is `POST https://generativelanguage.googleapis.com/v1beta/interactions`. Model identifiers and endpoint version should remain configurable and be checked again when implementation begins. [Interactions overview](https://ai.google.dev/gemini-api/docs/interactions-overview).
+
+## Implemented build-time generation
+
+[`scripts/generate-gemini-universe.mjs`](../scripts/generate-gemini-universe.mjs) reads the acquired universe, creates a bounded six-dataset request, and calls Argon with a privately supplied API credential. `--prepare-only` creates context/request fixtures without a model call. `--secret-project ID` reads `GEMINI_API_KEY` through the authenticated Firebase CLI; no key is written to a source file.
+
+[`public/assets/gemini-plan.js`](../public/assets/gemini-plan.js) is shared by the CLI and browser. It rejects unknown or duplicate dataset IDs, incompatible visual roles, invented or cross-dataset selected IDs, extra fields, non-finite statistics, and mismatched artifact bindings. The only selectable record IDs are those included in the bounded context. Failed requests leave the previous artifact intact.
+
+The artifact records the model, prompt version, generation time, source snapshot hash, exact universe-file hash, context hash, and response identifier. The browser independently verifies these hashes, displays generated text as interpretation, and highlights the referenced records. The current checked-in artifact is **not generated**; no successful provider call is claimed.
+
+This build-time route makes generation available without exposing a billed public endpoint. The service architecture below remains the proposal for future interactive generation.
 
 ## Architecture
 
