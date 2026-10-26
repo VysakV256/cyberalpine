@@ -1,0 +1,20 @@
+{
+  "model": "gemini-omni-1.1-flash",
+  "store": false,
+  "input": [
+    {
+      "type": "image",
+      "mime_type": "image/png",
+      "data": "REPLACE_WITH_BASE64_RENDERED_REFERENCE_FRAME"
+    },
+    {
+      "type": "text",
+      "text": "Render a photoreal interpretation of this Cyberalpine reference. Ice-blue archive glaciers, verdant pine forests, wet granite and a reflective data lake. Follow an explorer-eye camera at east=45m, height=10m, north=-50m, yaw=0 radians clockwise from north, pitch=0 radians, horizontal FOV=65 degrees. Keep this pose fixed for the requested four-second interval; do not invent autonomous gaze motion. Retain visible landmark identity and avoid added labels. The production request must include the actual world hash and timestamped effective gaze interval. Exact geometric and temporal fidelity must be checked after generation."
+    }
+  ],
+  "response_format": {
+    "type": "video",
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
+  }
+}

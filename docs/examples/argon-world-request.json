@@ -1,0 +1,18 @@
+{
+  "model": "gemini-4-argon",
+  "store": false,
+  "input": "Propose an ice-blue and verdant-pine interpretation for the Cyberalpine dataset bls-cpi. It is tabular monthly economic data and owns a quantitative summit. Use only this supplied dataset ID. Preserve observed values, units, counts, and provenance. Return a visual interpretation and material suggestion; do not invent observations or dependencies. This is an illustrative request; production context must include its actual source snapshot identity and computed features.",
+  "response_format": {
+    "type": "text",
+    "mime_type": "application/json",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "datasetId": { "type": "string", "enum": ["bls-cpi"] },
+        "interpretation": { "type": "string" },
+        "materialSuggestion": { "type": "string" }
+      },
+      "required": ["datasetId", "interpretation", "materialSuggestion"]
+    }
+  }
+}

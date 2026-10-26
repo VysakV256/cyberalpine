@@ -2,6 +2,8 @@
 
 **Live:** [cyberalpine.web.app](https://cyberalpine.web.app)
 
+**Planned model integrations:** [Gemini API architecture and implementation plan](docs/gemini-integration.md), covering Argon environment reasoning, Omni video generation, gaze handoff, authentication, example requests, and delivery milestones. These integrations are planned; the current web app makes no Gemini calls.
+
 A buildless Three.js ecosystem for Cyberquest. Serve `public/` with an HTTP server; opening `index.html` as a local file will not load the JSON manifest or JavaScript modules.
 
 ```sh
@@ -24,7 +26,7 @@ Use the region buttons to visit peaks, forest, glaciers, and lake. Launch a boat
 
 The external gaze interface is `window.Cyberalpine.setGaze({position:{x,y,z},yaw,pitch,fov,source})`. Coordinates use metres: +X east, +Y up, +Z north; yaw is clockwise from north in radians, pitch positive up, FOV horizontal degrees. Your future hyperemergence engine supplies gaze. This page does not implement robot kinematics or autonomous gaze selection.
 
-Private collections, personal entitlements, cloud data storage, real buoyancy, and generative video are future integrations. The browser renders structured geometry; it does not call Gemini or generate video. The prior Cyberquest provider adapter and design document describe the model boundary.
+Private collections, personal entitlements, cloud data storage, real buoyancy, and generative video are future integrations. The browser renders structured geometry; it does not call Gemini or generate video. The [planned Gemini integration](docs/gemini-integration.md) describes the provider boundary.
 
 ## Rebuild data
 
