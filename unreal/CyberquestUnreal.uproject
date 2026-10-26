@@ -1,0 +1,8 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "Information landscapes",
+  "Description": "Cyberquest: dataset terrain, forest ecosystems, information rivers and external gaze.",
+  "Modules": [{"Name": "CyberquestUnreal", "Type": "Runtime", "LoadingPhase": "Default"}],
+  "Plugins": [{"Name": "ProceduralMeshComponent", "Enabled": true}, {"Name": "PythonScriptPlugin", "Enabled": true}, {"Name": "EditorScriptingUtilities", "Enabled": true}]
+}

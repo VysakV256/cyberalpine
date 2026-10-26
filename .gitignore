@@ -1,0 +1,27 @@
+# Local Firebase state and diagnostic logs
+.firebase/
+firebase-debug.log*
+*-debug.log*
+*.log
+
+# Credentials and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+*serviceAccount*.json
+
+# Editor/OS/generated dependencies
+.DS_Store
+node_modules/
+__pycache__/
+.vscode/
+.idea/
+
+# Unreal generated files
+unreal/Binaries/
+unreal/Intermediate/
+unreal/Saved/
+unreal/DerivedDataCache/
