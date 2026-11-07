@@ -15,6 +15,7 @@ function assert(condition,message){if(!condition)throw Error(message);}
 function string(v,max,label){assert(typeof v==='string'&&v.trim().length>0&&v.length<=max,`Invalid ${label}.`);return v.trim();}
 function finite(v,label){assert(typeof v==='number'&&Number.isFinite(v),`Non-finite ${label}.`);return v;}
 function onlyKeys(object,keys,label){assert(plain(object)&&Object.keys(object).every(key=>keys.includes(key)),`Unexpected ${label} fields.`);}
+function validateModelId(model){assert(typeof model==='string'&&/^[a-zA-Z0-9._-]{1,100}$/.test(model),'Invalid Gemini model ID.');}
 function sample(records,count=8){return Array.from({length:Math.min(count,records.length)},(_,i)=>records[Math.floor(i*records.length/Math.min(count,records.length))]);}
 export function compileContext(manifest){
   assert(plain(manifest)&&Array.isArray(manifest.datasets),'Invalid universe manifest.');
@@ -90,7 +91,7 @@ export function parseResponse(response){
   try{return JSON.parse(text);}catch{throw Error('Google returned invalid JSON.');}
 }
 export function buildRequest(context,model='gemini-4-argon'){
-  assert(/^[a-zA-Z0-9._-]{1,100}$/.test(model),'Invalid Gemini model ID.');
+  validateModelId(model);
   return {model,store:false,input:
     'Create an evocative, precise visual interpretation for this acquired-data information universe. Return the required JSON plan for all six datasets. '+
     'Use only the supplied dataset IDs and selected record IDs. Preserve numeric observations, counts, units, provenance, geometry, and the three declared derivations. '+
@@ -111,4 +112,28 @@ export function validateBindings(artifact,{sourceSnapshotSha256,universeManifest
   for(const [key,expected]of Object.entries({sourceSnapshotSha256,universeManifestSha256,inputContextSha256}))
     assert(/^[a-f0-9]{64}$/i.test(expected||'')&&artifact[key]===expected,`Artifact ${key} binding does not match.`);
   return true;
+}
+
+async function sha256Text(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Verify against the full source snapshot, even when the visitor has selected
+// only one dataset for the current landscape. Preserve the generation receipt.
+export async function loadGeminiArtifact(manifest, manifestText, fetchFile = fetch) {
+  try {
+    const response = await fetchFile('assets/gemini-universe.json', { cache: 'no-cache' });
+    if (!response.ok) return null;
+    const artifact = await response.json();
+    if (artifact?.status !== 'generated') return null;
+    const [universeManifestSha256, inputContextSha256] = await Promise.all([
+      sha256Text(manifestText), sha256Text(JSON.stringify(compileContext(manifest))),
+    ]);
+    validateBindings(artifact, { sourceSnapshotSha256: manifest.sourceSnapshotSha256, universeManifestSha256, inputContextSha256 });
+    validateModelId(artifact.model);
+    return { ...artifact, plan: validatePlan(artifact.plan, manifest) };
+  } catch {
+    return null;
+  }
 }
