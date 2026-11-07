@@ -6,7 +6,7 @@ import {createDataLandmarks} from './assets/data-landmarks.js';
 import {createDataInspector} from './assets/data-inspector.js';
 import {buildSelectedLandscape} from './assets/landscape-generator.js';
 import {createLandscapeBuilder} from './assets/landscape-builder.js';
-import {compileContext,validatePlan,validateBindings} from './assets/gemini-plan.js';
+import {loadGeminiArtifact} from './assets/gemini-plan.js';
 /* Local Three.js concept atlas. Source records stay in the downloaded manifest.
  * No credentials, remote provider calls, or robot kinematics are embedded. */
 const $=id=>document.getElementById(id),canvas=$('landscape');
@@ -51,7 +51,7 @@ let world=CyberTerrain.generate({seed:'cyberalpine-2026'}),terrain=world.terrain
 let lake={x:45,z:-50,rx:14,rz:14,y:7.4,depth:4};
 const boat={active:false,x:lake.x-8,z:lake.z,heading:Math.PI/2,speed:0},keys=new Set(),markers=[],recordTrees=[],buoys=[],flowParticles=[],materials=new Map();
 let boatMesh,waterMesh,waterSystem,glacierMaterial,last=0,hidden=false,externalHorizontalFov=65,sceneVisible=true;
-let dataLandmarks=null,dataInspector=null,dataLayersEnabled=true,dataCutoff=null,manifestHash=null,geminiPlan=null;
+let dataLandmarks=null,dataInspector=null,dataLayersEnabled=true,dataCutoff=null,forest=null,geminiInterpretation=null;
 let landscapeBuilder=null,landscapeSelection=[],landscapeSummary=null,landscapeManifest=null,landscapeGrowth=1;
 function material(color,options={}){const key=color+JSON.stringify(options);if(!materials.has(key))materials.set(key,new THREE.MeshStandardMaterial({color,roughness:.88,...options}));return materials.get(key)}
 function field(x,z){return CyberTerrain.field(terrain,x,z)}
@@ -106,9 +106,22 @@ function makeRockDetails(){
  const rocks=new THREE.InstancedMesh(geometry,material('#61767a',{map:groundTexture,bumpMap:groundTexture,bumpScale:.15,roughness:.88}),points.length),dummy=new THREE.Object3D();
  points.forEach((p,i)=>{dummy.position.set(p.x,p.y+p.scale*.18,p.z);dummy.scale.set(p.scale,p.scale*(.6+i%3*.16),p.scale);dummy.rotation.set(i*.71,p.turn,i*.3);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);rocks.setColorAt(i,new THREE.Color(i%4?'#71898b':'#a7c7ce'))});rocks.castShadow=true;rocks.receiveShadow=true;worldGroup.add(rocks);
 }
-function makeForests(){const instances=[];for(const grove of terrain.forests||[]){const raw=sourceDatasets.find(d=>d.id===grove.datasetId);for(const tree of grove.trees||[]){if(Math.hypot((tree.x-lake.x)/lake.rx,(tree.z-lake.z)/lake.rz)<1.18)continue;instances.push({...tree,y:ground(tree.x,tree.z),datasetId:grove.datasetId,record:raw?.records?.find(r=>r.id===tree.recordId)})}}
- const forest=createAlpineForest(THREE,instances);worldGroup.add(forest);
- for(const t of instances)recordTrees.push({position:new THREE.Vector3(t.x,t.y+t.height*.55,t.z),record:t.record,datasetId:t.datasetId});
+function makeForests() {
+ const instances = [];
+ for (const grove of terrain.forests || []) {
+  const dataset = sourceDatasets.find(d => d.id === grove.datasetId);
+  for (const tree of grove.trees || []) {
+   if (Math.hypot((tree.x - lake.x) / lake.rx, (tree.z - lake.z) / lake.rz) < 1.18) continue;
+   instances.push({ ...tree, y: ground(tree.x, tree.z), datasetId: grove.datasetId,
+    record: dataset?.records?.find(r => r.id === tree.recordId) });
+  }
+ }
+ forest = createAlpineForest(THREE, instances);
+ worldGroup.add(forest);
+ for (const tree of forest.userData.instances) {
+  recordTrees.push({ position: new THREE.Vector3(tree.x, tree.y + tree.height * .55, tree.z),
+   record: tree.record, datasetId: tree.datasetId });
+ }
 }
 function makeRivers(){for(const r of terrain.rivers||[]){if(!Array.isArray(r.points)||r.points.length<2)continue;const points=r.points.map(p=>new THREE.Vector3(p.x,ground(p.x,p.z)+.19,p.z)),curve=new THREE.CatmullRomCurve3(points,false,'centripetal'),information=r.kind==='information-flow';const mesh=addMesh(new THREE.TubeGeometry(curve,Math.min(350,points.length*3),information?.18:.13,5,false),material(information?'#91dce8':'#3c9c9a',{emissive:information?'#3b9cae':'#145d58',emissiveIntensity:.25,roughness:.22}),null,false);mesh.userData={kind:r.kind,datasetId:r.datasetId};if(information){const bead=addMesh(new THREE.SphereGeometry(.27,8,6),material('#d6f7ff',{emissive:'#7acfe6',emissiveIntensity:.8}),null,false);flowParticles.push({mesh:bead,curve,offset:flowParticles.length*.23})}}}
 function makeGlaciers(){glacierMaterial=new THREE.MeshPhysicalMaterial({color:'#b8e5f2',map:iceTexture,bumpMap:iceTexture,bumpScale:.26,roughness:.28,metalness:.05,clearcoat:.65,clearcoatRoughness:.24,envMapIntensity:1.15});for(const d of terrain.datasets.filter(d=>d.form==='peak')){const vertices=[],indices=[],rings=12,segments=48,radius=d.radius*.34;
@@ -125,7 +138,17 @@ function setRecordLink(url){const href=safeURL(url);$('recordLink').hidden=!href
 function inspectDataset(id){const d=sourceDatasets.find(s=>s.id===id)||terrain.datasets.find(s=>s.id===id);if(!d)return;selectedDataset=id;dataInspector?.selectDataset(id);$('recordTitle').textContent=safeText(d.name)||id;const count=recordCount(d);$('recordDescription').textContent=(count===null?'Catalogue descriptor; no source records claimed. ':`${count} ${d.derived?'derived':'retained'} records. `)+(d.coverage?.selection||d.explanation||'Provenance and declared mappings remain in the world manifest.');setRecordLink(d.recordSourceUrl||d.sourceDocs||d.sourceUrl)}
 function inspectBuoy(i){const b=buoys[i];if(!b)return;document.querySelectorAll('#buoyList button').forEach((button,j)=>button.classList.toggle('active',i===j));if(!b.record){inspectDataset(b.dataset.id);return}const r=b.record;dataInspector?.inspectRecord(b.dataset.id,r.id);$('recordTitle').textContent=safeText(r.title)||safeText(r.id)||'Source record';$('recordDescription').textContent=`${b.dataset.name} · ${r.date||'Date not supplied'}. ${r.value!==undefined?`${r.value} ${r.unit||''}. `:''}${r.doi?'DOI '+r.doi+'. ':''}Retrieval provenance remains in the world manifest.`;setRecordLink(r.url||(r.doi?'https://doi.org/'+r.doi:b.dataset.recordSourceUrl||b.dataset.sourceUrl))}
 function makeBuoys(){const samples=[],visible=new Set(terrain.datasets.map(d=>d.id));for(const d of sourceDatasets.filter(d=>visible.has(d.id)&&!d.derived))for(const record of(d.records||[]).slice(0,1))samples.push({record,dataset:d});if(!samples.length)for(const d of sourceDatasets.filter(d=>visible.has(d.id)).slice(0,3))samples.push({record:d.records?.[0]||null,dataset:d});const buttons=[];samples.slice(0,4).forEach((sample,i)=>{const x=lake.x+[-5,4,7,-3][i],z=lake.z+[-4,4,-4,6][i],marker=addMesh(new THREE.CylinderGeometry(.25,.4,1.2,7),material('#a1dfeb'),new THREE.Vector3(x,lake.y+.4,z),false);const flag=addMesh(new THREE.SphereGeometry(.33,8,6),material('#e2f9ff',{emissive:'#6dd8ee',emissiveIntensity:.3}),new THREE.Vector3(x,lake.y+1.1,z),false);marker.userData.buoy=i;flag.userData.buoy=i;buoys.push({...sample,x,z,mesh:marker});const button=document.createElement('button');button.textContent=String(i+1).padStart(2,'0');button.setAttribute('aria-label','Inspect '+(sample.record?.title||sample.dataset.name));button.addEventListener('click',()=>inspectBuoy(i));buttons.push(button)});$('buoyList').replaceChildren(...buttons)}
-function rebuild(){clearWorld();lakeBoundaries();makeTerrain();makeForests();makeRivers();makeGlaciers();makeLake();makeMarkers();makeBuoys();if(manifest?.window){dataLandmarks=createDataLandmarks(THREE,{manifest:landscapeManifest||manifest,sourceManifest:manifest,ground});worldGroup.add(dataLandmarks.group);dataLandmarks.setVisible(dataLayersEnabled);dataLandmarks.setTime(dataCutoff||manifest.window.end);if(geminiPlan)dataLandmarks.applyPlan(geminiPlan)}$('sceneLoading').hidden=true}
+function rebuild() {
+ clearWorld(); lakeBoundaries(); makeTerrain(); makeForests(); makeRivers(); makeGlaciers(); makeLake(); makeMarkers(); makeBuoys();
+ if (manifest?.window) {
+  dataLandmarks = createDataLandmarks(THREE, { manifest: landscapeManifest || manifest, sourceManifest: manifest, ground });
+  worldGroup.add(dataLandmarks.group);
+  dataLandmarks.setVisible(dataLayersEnabled);
+  dataLandmarks.setTime(dataCutoff || manifest.window.end);
+ }
+ applyGeminiEmphasis();
+ $('sceneLoading').hidden = true;
+}
 function updateSources(raw){manifest=raw;const rows=[];let retained=0,sources=0;for(const d of sourceDatasets){const count=recordCount(d),fetched=['fetched','ok'].includes(d.status);if(fetched&&!d.derived){sources++;retained+=count||0}const tr=document.createElement('tr'),name=document.createElement('td'),form=document.createElement('td'),records=document.createElement('td'),button=document.createElement('button'),status=document.createElement('small');button.textContent=safeText(d.name)||d.id;button.addEventListener('click',()=>{focusDataset(d.id);$('atlas').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})});status.textContent=d.derived?'Derived collection · retained source records':fetched?'Fetched snapshot':d.status==='unavailable'?'Unavailable · no substituted records':'Illustrative catalogue descriptor';name.append(button,status);form.textContent=({peak:'Summit',valley:'Valley forest',foothill:'Object forest'})[d.form]||d.structure||'Dataset';records.textContent=count===null?'—':String(count);tr.append(name,form,records);rows.push(tr)}$('sourceRows').replaceChildren(...rows);const w=raw.window||{};$('dateWindow').textContent=w.start&&w.end?`${w.start} → ${w.end} / REPORTING & PUBLICATION WINDOW`:'ILLUSTRATIVE GEOMETRY / NO FETCHED SNAPSHOT';$('snapshotTag').textContent=sources?`${retained} SOURCE RECORDS / SNAPSHOT`:'ILLUSTRATIVE TERRAIN';$('coverageNote').textContent=sources?`${sources} source collections contain ${retained} retained records. Derived objects and reference edges are counted separately below. This bounded sample has source-specific gaps; it is not an exhaustive archive. No provider requests run in this page.`:'The atlas shows illustrative catalogue geometry. Missing data is never filled with invented observations.';$('sourceNote').textContent=(raw.sourceRetrievedAt?'Source retrieval: '+raw.sourceRetrievedAt+'. ':'')+'Record dates describe reporting or publication, not acquisition. Public metadata does not grant rights to underlying works.'}
 function rangePose(){const homes=terrain.datasets,minX=Math.min(...homes.map(d=>d.anchor.x-d.radius)),maxX=Math.max(...homes.map(d=>d.anchor.x+d.radius)),minZ=Math.min(...homes.map(d=>d.anchor.z-d.radius)),maxZ=Math.max(...homes.map(d=>d.anchor.z+d.radius)),x=(minX+maxX)/2,z=(minZ+maxZ)/2,span=Math.max(34,maxX-minX,maxZ-minZ),y=terrain.baseline+Math.max(0,...homes.map(d=>d.relief))*.22;return[[x+span*.83,y+span*.64,z-span],[x,y,z]]}
 function focusView(view){externalGaze=false;currentView=view;const peak=terrain.datasets.find(d=>d.form==='peak')||terrain.datasets[0],forest=terrain.datasets.find(d=>d.form==='valley')||terrain.datasets.find(d=>d.form!=='peak')||terrain.datasets[0];const positions={range:rangePose(),forest:[[forest.anchor.x+40,ground(forest.anchor.x,forest.anchor.z)+31,forest.anchor.z-44],[forest.anchor.x,ground(forest.anchor.x,forest.anchor.z)+2,forest.anchor.z]],glacier:[[peak.anchor.x+36,ground(peak.anchor.x,peak.anchor.z)+25,peak.anchor.z-40],[peak.anchor.x,ground(peak.anchor.x,peak.anchor.z)-1,peak.anchor.z]],lake:[[lake.x+25,lake.y+27,lake.z-35],[lake.x,lake.y,lake.z]]};const p=positions[view]||positions.range;targetPosition.fromArray(p[0]);targetAim.fromArray(p[1]);camera.fov=46;camera.updateProjectionMatrix();transition=true;if(reduced){camera.position.copy(targetPosition);aim.copy(targetAim)}document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===view;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active))});const labels={range:['The information alps','Each summit and basin is a dataset.'],forest:['A forest of relationships','Records gather; their connections remain traceable.'],glacier:['The archive glacier','History is retained in versioned snapshots.'],lake:['Commonwater · the data lake','Launch a boat. Inspect a buoy. Follow a question.']};$('placeLabel').textContent=labels[view][0];$('placeDescription').textContent=labels[view][1];if(view==='forest')inspectDataset(forest.id);if(view==='glacier')inspectDataset(peak.id)}
@@ -181,24 +204,36 @@ function inspectUniverseRecord(datum){
 }
 function mountDataInspector(){
  dataInspector=createDataInspector({manifest,onSelectDataset:id=>focusDataset(id),onLayerChange:enabled=>{dataLayersEnabled=enabled;dataLandmarks?.setVisible(enabled)},onTimeChange:({cutoff})=>{dataCutoff=cutoff;dataLandmarks?.setTime(cutoff)}});
- if(geminiPlan)dataInspector.setGeminiStatus({status:'generated',model:geminiPlanModel,plan:geminiPlan});
+ if(geminiInterpretation)dataInspector.setGeminiStatus(geminiInterpretation);
 }
-let geminiPlanModel=null;
-async function sha256Text(text){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes),n=>n.toString(16).padStart(2,'0')).join('')}
-async function loadGeminiInterpretation(){
- try{
-  const response=await fetch('assets/gemini-universe.json',{cache:'no-cache'});if(!response.ok)throw Error('No interpretation artifact');
-  const artifact=await response.json();if(artifact.status!=='generated'){dataInspector?.setGeminiStatus(artifact);return}
-  const contextHash=await sha256Text(JSON.stringify(compileContext(manifest)));
-  validateBindings(artifact,{sourceSnapshotSha256:manifest.sourceSnapshotSha256,universeManifestSha256:manifestHash,inputContextSha256:contextHash});
-  const plan=validatePlan(artifact.plan,manifest);geminiPlan=plan;geminiPlanModel=artifact.model;dataLandmarks?.applyPlan(plan);dataInspector?.setGeminiStatus({...artifact,plan});
- }catch{dataInspector?.setGeminiStatus({status:'pending',message:'Source-driven universe · Gemini interpretation pending'})}
+function applyGeminiEmphasis() {
+ const plan = geminiInterpretation?.plan ?? null;
+ dataLandmarks?.applyPlan(plan);
+ forest.userData.applyPlan?.(plan);
+ $('forestEmphasis').hidden = forest.userData.highlightedTrees === 0;
+}
+async function loadGeminiInterpretation(manifestText) {
+ geminiInterpretation = await loadGeminiArtifact(manifest, manifestText);
+ // The visitor may have regenerated the landscape while the artifact loaded.
+ applyGeminiEmphasis();
+ dataInspector?.setGeminiStatus(geminiInterpretation);
 }
 
 function resize(){const rect=canvas.getBoundingClientRect();renderer.setSize(Math.max(1,rect.width),Math.max(1,rect.height),false);camera.aspect=rect.width/Math.max(1,rect.height);if(externalGaze)camera.fov=2*Math.atan(Math.tan(externalHorizontalFov*Math.PI/360)/camera.aspect)*180/Math.PI;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(canvas);document.addEventListener('visibilitychange',()=>{hidden=document.hidden;keys.clear()});if('IntersectionObserver' in window)new IntersectionObserver(entries=>{sceneVisible=entries[0].isIntersecting;if(!sceneVisible)keys.clear()},{threshold:.01}).observe(canvas);
 function animate(time){const dt=Math.min(.05,last?(time-last)/1000:.016);last=time;requestAnimationFrame(animate);if(hidden||!sceneVisible)return;if(landscapeGrowth<1){landscapeGrowth=Math.min(1,landscapeGrowth+dt*1.45);const t=landscapeGrowth;worldGroup.scale.y=1-(1-t)**3;}moveBoat(dt);if(!externalGaze){if(transition){const factor=reduced?1:Math.min(1,dt*4);camera.position.lerp(targetPosition,factor);aim.lerp(targetAim,factor);if(camera.position.distanceTo(targetPosition)<.02&&aim.distanceTo(targetAim)<.02)transition=false}camera.lookAt(aim)}if(boatMesh){boatMesh.position.set(boat.x,lake.y+.23+(reduced?0:Math.sin(time*.0014)*.035),boat.z);boatMesh.rotation.y=boat.heading}if(!reduced){for(const f of flowParticles)f.mesh.position.copy(f.curve.getPointAt((time*.000035+f.offset)%1));}if(dataLandmarks)dataLandmarks.update(reduced?0:time*.001);if(waterSystem)waterSystem.update(time);renderer.render(scene,camera)}
-sourceDatasets=terrain.datasets;rebuild();updateSources({datasets:sourceDatasets});resize();requestAnimationFrame(animate);fetch('assets/universe.json',{cache:'no-cache'}).then(async r=>{if(!r.ok)throw Error('Snapshot unavailable');const text=await r.text();manifestHash=await sha256Text(text);return JSON.parse(text)}).then(raw=>{adoptManifest(raw);loadGeminiInterpretation()}).catch(error=>{$('snapshotTag').textContent='ILLUSTRATIVE TERRAIN';$('dateWindow').textContent='SOURCE SNAPSHOT UNAVAILABLE / CATALOGUE PREVIEW';$('coverageNote').textContent='The source snapshot could not be loaded. Illustrative geometry is shown; no observations have been substituted.';console.warn('Cyberalpine manifest:',error.message)});
-window.Cyberalpine=Object.freeze({getState:()=>({view:currentView,externalGaze,boat:{...boat},lake:{...lake},datasetCount:terrain.datasets.length,landscape:{selection:landscapeSelection.map(s=>({...s})),summary:landscapeSummary,growing:landscapeGrowth<1},hasSnapshot:Boolean(manifest?.window),sourceRecordCount:manifest?.dataSummary?.sourceRecords??sourceDatasets.filter(d=>!d.derived).reduce((s,d)=>s+(recordCount(d)||0),0),treeCount:recordTrees.length,dataLayer:dataLandmarks?.getStats()||null,gemini:{status:geminiPlan?'generated':'pending',model:geminiPlanModel},camera:{position:{x:camera.position.x,y:camera.position.y,z:camera.position.z},fov:camera.fov}}),focusView,launchBoat,dockBoat,setGaze,generateLandscape:selections=>generateLandscape(selections)});
+sourceDatasets=terrain.datasets;rebuild();updateSources({datasets:sourceDatasets});resize();requestAnimationFrame(animate);
+fetch('assets/universe.json', { cache: 'no-cache' }).then(async response => {
+ if (!response.ok) throw Error('Snapshot unavailable');
+ const text = await response.text();
+ adoptManifest(JSON.parse(text));
+ await loadGeminiInterpretation(text);
+}).catch(error => {
+ $('snapshotTag').textContent = 'ILLUSTRATIVE TERRAIN';
+ $('dateWindow').textContent = 'SOURCE SNAPSHOT UNAVAILABLE / CATALOGUE PREVIEW';
+ $('coverageNote').textContent = 'The source snapshot could not be loaded. Illustrative geometry is shown; no observations have been substituted.';
+ console.warn('Cyberalpine manifest:', error.message);
+});
+window.Cyberalpine=Object.freeze({getState:()=>({view:currentView,externalGaze,boat:{...boat},lake:{...lake},datasetCount:terrain.datasets.length,landscape:{selection:landscapeSelection.map(s=>({...s})),summary:landscapeSummary,growing:landscapeGrowth<1},hasSnapshot:Boolean(manifest?.window),sourceRecordCount:manifest?.dataSummary?.sourceRecords??sourceDatasets.filter(d=>!d.derived).reduce((s,d)=>s+(recordCount(d)||0),0),treeCount:recordTrees.length,dataLayer:dataLandmarks?.getStats()||null,gemini:{status:geminiInterpretation?'generated':'pending',model:geminiInterpretation?.model??null,highlightedTrees:forest.userData.highlightedTrees},camera:{position:{x:camera.position.x,y:camera.position.y,z:camera.position.z},fov:camera.fov}}),focusView,launchBoat,dockBoat,setGaze,generateLandscape:selections=>generateLandscape(selections)});
 window.addEventListener('cyberalpine:gaze',event=>{try{setGaze(event.detail)}catch(error){$('boatStatus').textContent='Gaze rejected: '+error.message}});
 
 // Explicit preview navigation always releases the external gaze override.

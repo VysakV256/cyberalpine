@@ -73,7 +73,7 @@ function branchGeometry(THREE) {
 export function createAlpineForest(THREE, instances = [], materials = {}) {
   const group = new THREE.Group(); group.name = 'Alpine record forests';
   const trees = instances.filter(t => t && [t.x, t.y, t.z, t.height, t.canopy].every(Number.isFinite)).slice(0, 600);
-  group.userData = { kind: 'record-forest', instances: trees, deterministic: true, visualModel: 'Layered irregular evergreen boughs; no botanical measurements inferred.' };
+  group.userData = { kind: 'record-forest', instances: trees, deterministic: true, highlightedTrees: 0, visualModel: 'Layered irregular evergreen boughs; no botanical measurements inferred.' };
   if (!trees.length) return group;
   const ownMaterials = [], ownTextures = [];
   const trunkGeometry = new THREE.CylinderGeometry(.3, 1, 1, 7, 2);
@@ -90,6 +90,7 @@ export function createAlpineForest(THREE, instances = [], materials = {}) {
     ownMaterials.push(foliage);
   }
   const branches = [], palette = ['#143b2b', '#1c4b32', '#245b3b', '#2f6842', '#3b754b', '#234f37'];
+  const boughOffsets = [0];
   const dummy = new THREE.Object3D(), color = new THREE.Color();
   const trunks = new THREE.InstancedMesh(trunkGeometry, bark, trees.length); trunks.name = 'Textured pine trunks';
   trunks.castShadow = true; trunks.receiveShadow = true;
@@ -120,6 +121,7 @@ export function createAlpineForest(THREE, instances = [], materials = {}) {
     for (let tip = 0; tip < 3; tip++) branches.push({ x: tree.x, y: tree.y + h * .96, z: tree.z,
       angle: turn + tip * Math.PI * 2 / 3, droop: -.95, length: h * .11,
       breadth: .55, color: new THREE.Color(baseColor).multiplyScalar(1.14) });
+    boughOffsets.push(branches.length);
   });
   const boughs = new THREE.InstancedMesh(foliageGeometry, foliage, branches.length); boughs.name = 'Layered needle boughs';
   boughs.castShadow = true; boughs.receiveShadow = true;
@@ -133,10 +135,27 @@ export function createAlpineForest(THREE, instances = [], materials = {}) {
   if (boughs.instanceColor) boughs.instanceColor.needsUpdate = true;
   if (trunks.computeBoundingSphere) trunks.computeBoundingSphere(); if (boughs.computeBoundingSphere) boughs.computeBoundingSphere();
   group.add(trunks, boughs);
+  // Only the display colors change. Keep the exact seeded colors for plan
+  // replacement or rejection, and leave both meshes' transforms untouched.
+  const baseColors = boughs.instanceColor.array.slice();
+  const gold = new THREE.Color('#ffc658');
+  group.userData.applyPlan = validatedPlan => {
+    if (!validatedPlan && !group.userData.highlightedTrees) return;
+    const selected = new Map((validatedPlan?.datasets ?? []).map(d => [d.datasetId, new Set(d.recordIds)]));
+    let highlightedTrees = 0;
+    boughs.instanceColor.array.set(baseColors);
+    trees.forEach((tree, i) => {
+      if (!selected.get(tree.datasetId)?.has(tree.recordId)) return;
+      highlightedTrees++;
+      for (let j = boughOffsets[i]; j < boughOffsets[i + 1]; j++) boughs.setColorAt(j, gold);
+    });
+    group.userData.highlightedTrees = highlightedTrees;
+    boughs.instanceColor.needsUpdate = true;
+  };
   group.userData.treeCount = trees.length; group.userData.branchCount = branches.length;
   group.userData.triangleCount = trees.length * trunkGeometry.index.count / 3 + branches.length * foliageGeometry.index.count / 3;
   // Host can call this before removing the group. Passed-in materials stay owned
   // by the host; internally generated maps and materials are released here.
-  group.userData.dispose = () => { for (const t of ownTextures) t.dispose(); for (const m of ownMaterials) m.dispose(); };
+  group.userData.dispose = () => { trunks.dispose(); boughs.dispose(); for (const t of ownTextures) t.dispose(); for (const m of ownMaterials) m.dispose(); };
   return group;
 }

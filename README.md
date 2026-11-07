@@ -34,6 +34,8 @@ The **Landscape composer** lets each visitor select any of the six retained data
 
 Selected peaks have six physical ridges and gullies, with matching analytic height gradients. Each forest tree identifies a retained source or derived record; collections above 150 records use an evenly distributed deterministic sample. The full native selection creates two peaks and four forests with 289 record trees. Tree height, canopy size, ridges, and layout are display mappings. The source snapshot is immutable, and only declared transfers whose endpoints remain selected are displayed.
 
+Gold foliage marks a tree whose dataset ID and record ID match a selection in the verified Gemini interpretation. Select the tree to inspect its source record and model attribution in the Data lens. Color represents a model choice. Values and units come from the record. Selected records outside the tree sample have no physical highlight. If the artifact is missing or fails validation, every tree keeps its seeded foliage color.
+
 Generation animates the new landscape, respects reduced motion, reframes the selected homes, preserves an external gaze, and keeps the data lake accessible through its region control. Visitor selections apply to the current browser session.
 
 The **Data lens** connects six dataset selectors, a monthly cutoff, source charts, and Three.js record landmarks:
