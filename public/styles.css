@@ -45,3 +45,6 @@
 @media(prefers-reduced-motion:reduce){.landscape-builder[data-state='generating'] .builder-status:before{animation:none}}
 .compose-explorer{top:118px}.landscape-builder{scroll-margin-top:25px}
 @media(max-width:520px){.compose-explorer{top:100px}}
+
+.beyondscape-entry{top:158px;text-decoration:none}.beyondscape-entry:hover{background:var(--ice);color:var(--ink)}
+@media(max-width:520px){.beyondscape-entry{top:136px}}

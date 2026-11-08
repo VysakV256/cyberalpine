@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071e19">
+  <meta name="description" content="Climb a Cyberalpine dataset. Follow record holds through an alpine beyondscape with an adaptive soundtrack and a Meta Ray-Ban Display HUD.">
+  <title>Beyondscape — Cyberalpine bouldering</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23071e19' d='M0 0h48v48H0z'/%3E%3Cpath d='m6 37 13-26 11 21 6-12 8 17' fill='none' stroke='%23d6f3f5' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/beyondscape.css?v=854d2d262ea5">
+</head>
+<body>
+  <header class="beyond-header">
+    <a class="beyond-brand" href="index.html#atlas" aria-label="Back to the Cyberalpine atlas"><svg viewBox="0 0 40 32" aria-hidden="true"><path d="m1 29 13-25 10 19 5-11 10 17M10 12l4 5 4-5M24 23l5 6"/></svg><span>CYBERALPINE<small>BEYONDSCAPE / 01</small></span></a>
+    <span class="header-coordinate" aria-hidden="true">INFORMATION, WITH A FOOTHOLD.</span>
+    <a class="atlas-return" href="index.html#atlas">Return to atlas <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main class="beyond-app">
+    <section class="climb-stage" aria-labelledby="beyondTitle">
+      <canvas id="climbCanvas" tabindex="0" aria-label="Interactive dataset bouldering face. Use the route controls or arrow keys to move between record holds."></canvas>
+      <div class="stage-top">
+        <div class="stage-title"><span class="eyebrow"><i></i> MOUNTAIN PEAK / DATA BOULDERING</span><h1 id="beyondTitle">BEYOND<span>SCAPE.</span></h1><p>A record becomes a hold.<br>A dataset becomes a way through.</p></div>
+        <button type="button" class="view-toggle" id="viewToggle">Gaze / Orbit <span aria-hidden="true">⤢</span></button>
+      </div>
+      <div class="stage-orientation" aria-hidden="true"><span>↑</span>ASCEND THE INFORMATION FIELD</div>
+      <div class="stage-bottom"><span class="stage-caption">ICE / GRANITE / VERDANT PINE</span><p>Virtual data route · not a physical climb guide.</p></div>
+      <div class="climb-loading" id="climbLoading" role="status">Mapping records to the rock face…</div>
+      <p class="climb-error" id="climbError" role="alert" hidden></p>
+    </section>
+
+    <aside class="climb-console" aria-label="Bouldering route and soundtrack controls">
+      <section class="route-section">
+        <div class="section-index"><span>01 / CHOOSE YOUR FACE</span><span class="section-mark" aria-hidden="true">△</span></div>
+        <label class="route-label" for="routeSelect">Dataset route</label>
+        <select id="routeSelect" aria-label="Choose a dataset route"><option value="">Loading dataset routes…</option></select>
+        <h2 id="routeTitle">The information ascent</h2>
+        <div class="progress-heading"><span>YOUR PASSAGE</span><output id="climbProgressText" aria-live="polite">Hold 0 / 0</output></div>
+        <progress id="climbProgress" max="1" value="0" aria-label="Route progress">0%</progress>
+        <dl class="climb-metrics"><div><dt>DISPLAY ELEVATION</dt><dd id="climbElevation">0.0 m</dd></div><div><dt>REGION</dt><dd id="climbRegion">Base</dd></div><div><dt>SOUND TEMPO</dt><dd id="climbTempo">— BPM</dd></div></dl>
+        <div class="move-controls" role="group" aria-label="Climb between record holds"><button type="button" id="climbPrevious" class="downclimb"><span aria-hidden="true">↓</span> Downclimb</button><button type="button" id="climbNext" class="next-hold">Reach next hold <span aria-hidden="true">↗</span></button></div>
+        <div class="route-utilities"><button type="button" id="climbReset">Restart route</button><span>↑ / ↓ to climb · Enter to reach</span></div>
+      </section>
+
+      <section class="hold-section" aria-labelledby="holdHeading">
+        <div class="section-index"><span id="holdHeading">02 / THE RECORD IN REACH</span><span class="section-mark" aria-hidden="true">✳</span></div>
+        <h3 id="holdTitle">Every hold has a source.</h3>
+        <p id="holdValue" class="hold-value">Choose a route to begin.</p>
+        <p id="holdDate" class="hold-date">Source date</p>
+        <a id="holdSource" class="record-source" target="_blank" rel="noopener noreferrer" hidden>Read the source <span aria-hidden="true">↗</span></a>
+        <div id="holdList" class="hold-list" aria-label="Record holds along this route"></div>
+        <p id="routeMapping" class="mapping-note">Record identity stays intact. Positions, elevation and sound are declared display mappings.</p>
+      </section>
+
+      <section class="sound-section" aria-labelledby="soundHeading">
+        <div class="section-index"><span id="soundHeading">03 / HEAR THE LANDSCAPE</span><span class="section-mark" aria-hidden="true">∿</span></div>
+        <p class="sound-copy">A quiet pulse at the base. Pine tones in the forest. An ice canopy as you ascend.</p>
+        <div class="sound-actions"><button type="button" id="soundToggle">Start soundtrack <span aria-hidden="true">▷</span></button><button type="button" id="soundMute" aria-pressed="false">Mute</button></div>
+        <label class="volume-label" for="soundVolume"><span>VOLUME</span><input id="soundVolume" type="range" min="0" max="1" step="0.01" value="0.4" aria-label="Soundtrack volume"></label>
+        <p id="soundStatus" class="sound-status" role="status">Sound is off. Start when you are ready.</p>
+      </section>
+
+      <section class="glasses-section" aria-labelledby="glassesHeading">
+        <div class="section-index"><span id="glassesHeading">04 / A VIEW IN YOUR GLASSES</span><span class="section-mark" aria-hidden="true">⌁</span></div>
+        <div class="glasses-heading"><svg viewBox="0 0 100 38" aria-hidden="true"><path d="m3 11 8 2m78 0 8-2M11 10c7-7 27-7 32 2l-3 15c-7 7-21 7-27-1Zm46 2c5-9 25-9 32-2l-2 16c-6 8-20 8-27 1ZM43 14c4-3 10-3 14 0"/></svg><h3>Meta Ray-Ban<br>Display</h3></div>
+        <p id="glassesNote">A compact, high-contrast route HUD for the glasses display. Open it as a standalone web app; phone and glasses sessions do not pair automatically.</p>
+        <div class="glasses-actions"><a id="glassesLink" href="glasses.html" target="_blank" rel="noopener noreferrer">Open glasses HUD <span aria-hidden="true">↗</span></a><button type="button" id="shareRoute">Copy route link</button></div>
+        <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
+      </section>
+    </aside>
+  </main>
+  <nav class="mobile-climb-bar" aria-label="Mobile climbing controls"><button type="button" id="mobileClimbPrevious" aria-label="Downclimb to the previous record hold" disabled><span aria-hidden="true">↓</span> Back</button><output id="mobileClimbPosition" aria-live="polite" aria-label="Current route hold">Hold 0 / 0</output><button type="button" id="mobileClimbNext" aria-label="Reach the next record hold" disabled>Reach <span aria-hidden="true">↑</span></button></nav>
+  <footer class="beyond-footer"><span>CYBERALPINE / BEYONDSCAPE</span><span>Read a landscape. Climb a question. Keep the source.</span><a href="index.html#sources">Source catalogue ↗</a></footer>
+  <script src="assets/beyondscape.js?v=deb594091d81" type="module"></script>
+</body>
+</html>

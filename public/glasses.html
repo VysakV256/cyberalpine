@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="A compact Cyberalpine climbing-route HUD for Meta Ray-Ban Display. Navigate record holds with D-pad and Enter input.">
+  <title>Cyberalpine — Glasses HUD</title>
+  <link rel="stylesheet" href="assets/glasses.css?v=50f2ccef478a">
+</head>
+<body>
+  <main class="glasses-hud" aria-label="Cyberalpine route HUD for Meta Ray-Ban Display">
+    <header class="hud-top"><span class="hud-wordmark">CYBERALPINE</span><span id="hudRegion">BASE</span></header>
+    <section class="hud-route" aria-labelledby="hudDataset"><h1 id="hudDataset">Loading route…</h1><div class="hud-position"><output id="hudProgressText" aria-live="polite">HOLD 0 / 0</output><span id="hudElevation">0.0 m</span></div><progress id="hudProgress" max="1" value="0" aria-label="Route progress">0%</progress></section>
+    <section class="hud-record" aria-label="Current record hold"><h2 id="hudRecord">A record becomes a hold.</h2><p id="hudValue">Choose your passage.</p></section>
+    <div class="hud-controls" role="group" aria-label="Route controls"><button type="button" id="hudPrevious" aria-label="Previous record hold"><span aria-hidden="true">↓</span> Back</button><button type="button" id="hudNext" aria-label="Reach next record hold">Reach <span aria-hidden="true">↑</span></button><button type="button" id="hudSound" aria-pressed="false">Sound</button></div>
+    <p id="hudSoundStatus" class="hud-sound-status" role="status">Sound off · Enter / ↑ to reach</p>
+    <footer class="hud-footer"><a id="hudCompanion" href="beyondscape.html">Phone / laptop view ↗</a><p>Virtual data route · not a physical climb guide.</p></footer>
+    <div id="hudLoading" class="hud-loading" role="status">Mapping your route…</div>
+    <p id="hudError" class="hud-error" role="alert" hidden></p>
+  </main>
+  <script src="assets/glasses.js?v=72c65e6a639f" type="module"></script>
+</body>
+</html>

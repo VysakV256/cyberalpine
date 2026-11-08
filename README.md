@@ -20,6 +20,12 @@ This prototype uses a 2025-10-25 through 2026-10-25 selection window. Its four a
 
 There are two additional deterministic derived collections: 22 nested economic observation objects and 329 DOI reference edges. These are not additional acquired works. Heights, tree dimensions, placement, and force controls are declared visual mappings, not importance or truth scores.
 
+## Beyondscape bouldering and glasses
+
+Open [Beyondscape](https://cyberalpine.web.app/beyondscape.html) from the atlas’s **Climb this landscape** link to carry the selected datasets into a virtual climbing face. Up to 24 chronological retained records become individually inspectable holds. Use touch controls or Up / Down / Space / Enter, switch to Explorer gaze, and start the locally synthesized soundtrack. Musical tempo and timbre respond to route progress and separate within-series values; music is an authored interpretation.
+
+The [Meta Ray-Ban Display HUD](https://cyberalpine.web.app/glasses.html) is a standalone 600×600 web interface with D-pad controls, current-record data and sound. Copy its route URL from Beyondscape and add it through Meta AI’s Web App setup. A shared URL carries dataset and hold; different devices run independently. Same-browser windows can mirror state through BroadcastChannel. Physical-device verification remains outstanding. [Setup, mappings and limitations](docs/beyondscape.md).
+
 ## Controls and integration
 
 Use the region buttons to visit peaks, forest, glaciers, and lake. Launch a boat, then steer with WASD, arrow keys, or the on-screen controls. Return to the boathouse to dock. Select a dataset buoy to inspect its provenance.

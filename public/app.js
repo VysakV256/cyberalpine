@@ -6,6 +6,7 @@ import {createDataLandmarks} from './assets/data-landmarks.js';
 import {createDataInspector} from './assets/data-inspector.js';
 import {buildSelectedLandscape} from './assets/landscape-generator.js';
 import {createLandscapeBuilder} from './assets/landscape-builder.js';
+import {routeShareURL} from './assets/beyondscape-routes.js';
 import {compileContext,validatePlan,validateBindings} from './assets/gemini-plan.js';
 /* Local Three.js concept atlas. Source records stay in the downloaded manifest.
  * No credentials, remote provider calls, or robot kinematics are embedded. */
@@ -139,7 +140,7 @@ function generateLandscape(selections,{animate=true}={}){
  landscapeBuilder?.setSelection(landscapeSelection);dataInspector?.setLandscape(result.datasets);if(!result.datasets.some(d=>d.id===selectedDataset))inspectDataset(result.datasets[0].id);
  const s=result.summary,message=`${s.datasetCount} dataset ${s.datasetCount===1?'home':'homes'} · ${s.peakCount} ${s.peakCount===1?'peak':'peaks'} · ${s.forestCount} ${s.forestCount===1?'forest':'forests'} · ${s.treeCount} record trees`;
  landscapeBuilder?.setStatus({state:'ready',message});
- $('snapshotTag').textContent=`${s.datasetCount} SELECTED DATASETS / ${s.sourceRecordCount} SOURCE RECORDS`;
+ $('snapshotTag').textContent=`${s.datasetCount} SELECTED DATASETS / ${s.sourceRecordCount} SOURCE RECORDS`;const climbDataset=result.datasets.find(d=>d.form==='peak')||result.datasets[0];$('beyondscapeLink').href=routeShareURL(new URL('beyondscape.html',location.href).href,{datasetId:climbDataset.id,selection:result.datasets.map(d=>d.id)});
  if(!externalGaze)focusView('range');
  return result;
 }
